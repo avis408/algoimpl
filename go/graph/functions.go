@@ -87,6 +87,58 @@ func (g *Graph) TopologicalSort() []Node {
 	return sorted
 }
 
+
+type NewNode struct {
+	Node Node
+	Level int32
+}
+
+func (g *Graph) TopologicalSortNew() []NewNode {
+	if g.Kind == Undirected {
+		return nil
+	}
+	for i := range g.nodes {
+		g.nodes[i].state = unseen
+		g.nodes[i].data = i
+	}
+	sorted := make([]node, 0, len(g.nodes))
+	// sort preorder (first jacket, then shirt)
+	for _, node := range g.nodes {
+		if node.state == unseen {
+			g.dfsNew(node, &sorted)
+		}
+	}
+	revInd := make(map[int]int, len(sorted))
+	var i int
+	for i = range sorted {
+		revInd[sorted[i].data] = i ;
+	}
+	answer := make([]NewNode, 0, len(sorted))
+
+	// now make post order for correct sort (jacket follows shirt). O(V)
+	for i,xx := range sorted {
+		answer = append(answer, NewNode{Node:xx.container, Level:0})
+		for _,yy := range sorted[i].edges {
+			if answer[i].Level < answer[ revInd[(*yy.end).data] ].Level+1 {
+				answer[i].Level = answer[ revInd[(*yy.end).data] ].Level+1
+			}
+		}
+	}
+	return answer
+}
+
+func (g *Graph) dfsNew(node *node, finishList *[]node) {
+	node.state = seen
+	for _, edge := range node.edges {
+		if edge.end.state == unseen {
+			edge.end.parent = node
+			g.dfsNew(edge.end, finishList)
+		}
+	}
+	*finishList = append(*finishList, *node )
+}
+
+
 // Reverse returns reversed copy of the directed graph g.
 // This function can be used to copy an undirected graph.
 func (g *Graph) Reverse() *Graph {
